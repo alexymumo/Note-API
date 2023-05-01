@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -26,7 +25,6 @@ func (server *Server) CreateNote(w http.ResponseWriter, r *http.Request) {
 	output, err := note.SaveNote(server.DB)
 	if err != nil {
 		return
-
 	}
 	responses.JSON(w, http.StatusCreated, output)
 }
@@ -54,9 +52,40 @@ func (server *Server) DeleteNote(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) UpdateNote(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.ParseUint(vars["id"], 10, 64)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
 
-	fmt.Println("Server working")
+	note := models.Note{}
+	err = server.DB.Debug().Model(models.Note{}).Where("note_id = ?", id).Take(&note).Error
 
+	if err != nil {
+		responses.ERROR(w, http.StatusNotFound, err)
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	updatenote := models.Note{}
+	err = json.Unmarshal(body, &updatenote)
+
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	updated, err := updatenote.UpdateNote(server.DB)
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	responses.JSON(w, http.StatusOK, updated)
 }
 
 func (server *Server) FindNotes(w http.ResponseWriter, r *http.Request) {

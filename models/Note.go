@@ -46,11 +46,17 @@ func (n *Note) DeleteNote(db *gorm.DB, id uint32) (int32, error) {
 		return 0, db.Error
 	}
 	return int32(db.RowsAffected), nil
-
 }
 
-func (n *Note) UpdateNote(db *gorm.DB) {
-
+func (n *Note) UpdateNote(db *gorm.DB) (*Note, error) {
+	//var err error
+	err := db.Debug().Model(&Note{}).Where("note_id = ?", n.NoteID).Updates(Note{
+		Title:     n.Title,
+		UpdatedAt: time.Now()}).Error
+	if err != nil {
+		return &Note{}, err
+	}
+	return n, nil
 }
 
 func (n *Note) GetAllNotes(db *gorm.DB) (*[]Note, error) {
